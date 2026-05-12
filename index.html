@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1B5E20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bem Ti Vi">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Sistema financeiro da Fazenda Bem Ti Vi">
+<title>Fazenda Bem Ti Vi — Financeiro</title>
+
+<!-- PWA Manifest inline -->
+<script>
+const manifestData = {
+  name: "Fazenda Bem Ti Vi — Financeiro",
+  short_name: "Bem Ti Vi",
+  description: "Controle financeiro da Fazenda Bem Ti Vi",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#0f2010",
+  theme_color: "#1B5E20",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%231B5E20'/><text y='130' x='96' font-size='110' text-anchor='middle'>🌿</text></svg>", sizes: "192x192", type: "image/svg+xml" },
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%231B5E20'/><text y='350' x='256' font-size='300' text-anchor='middle'>🌿</text></svg>", sizes: "512x512", type: "image/svg+xml" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifestData)], {type:"application/json"});
+const manifestURL = URL.createObjectURL(blob);
+document.write('<link rel="manifest" href="'+manifestURL+'">');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<style>
+/* ══════════════════════════════════════════
+   RESET & TOKENS
+══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --g0: #0a1a0b;
+  --g1: #1B5E20;
+  --g2: #2E7D32;
+  --g3: #388E3C;
+  --g4: #4CAF50;
+  --g5: #A5D6A7;
+  --g6: #E8F5E9;
+  --br0: #2c1810;
+  --br1: #4E342E;
+  --br2: #6D4C41;
+  --br3: #8D6E63;
+  --gold: #F9A825;
+  --goldf: #fff8e1;
+  --r1: #C62828;
+  --r2: #FFCDD2;
+  --bl: #1565C0;
+  --blf: #E3F2FD;
+  --surf: #ffffff;
+  --surf2: #f4f6f3;
+  --surf3: #eaede8;
+  --text1: #1a2318;
+  --text2: #4a5c46;
+  --text3: #7a9174;
+  --border: rgba(46,125,50,.15);
+  --border2: rgba(46,125,50,.25);
+  --shadow: 0 2px 16px rgba(27,94,32,.10);
+  --shadow-lg: 0 8px 40px rgba(27,94,32,.18);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --font: 'Sora', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --nav-h: 64px;
+  --tab-h: 62px;
+}
+
+html { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--g0);
+  color: var(--text1);
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  height: 100vh;
+  max-width: 520px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--surf2);
+}
+
+/* ── TOP NAV ── */
+#topnav {
+  flex-shrink: 0;
+  height: var(--nav-h);
+  background: var(--g1);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 12px;
+  position: relative;
+  z-index: 10;
+}
+.nav-logo { font-size: 22px; }
+.nav-title { flex: 1; }
+.nav-title h1 { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+.nav-title p  { font-size: 11px; color: var(--g5); font-weight: 300; }
+.nav-sync {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.12);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px;
+  transition: background .15s;
+}
+.nav-sync:hover { background: rgba(255,255,255,.22); }
+
+/* ── SCROLL AREA ── */
+#scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: calc(var(--tab-h) + 12px);
+}
+#scroll-area::-webkit-scrollbar { width: 4px; }
+#scroll-area::-webkit-scrollbar-track { background: transparent; }
+#scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── BOTTOM TABS ── */
+#bottomtabs {
+  flex-shrink: 0;
+  height: var(--tab-h);
+  background: var(--surf);
+  border-top: 1px solid var(--border);
+  display: flex;
+  position: relative;
+  z-index: 10;
+}
+.btab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 10px;
+  font-family: var(--font);
+  font-weight: 500;
+  transition: color .15s;
+  position: relative;
+  padding: 6px 0 8px;
+}
+.btab i { font-size: 22px; transition: transform .15s; }
+.btab.active { color: var(--g1); }
+.btab.active i { transform: translateY(-1px); }
+.btab.active::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 2.5px;
+  background: var(--g1);
+  border-radius: 0 0 3px 3px;
+}
+.btab .badge {
+  position: absolute;
+  top: 6px; right: calc(50% - 18px);
+  background: var(--r1);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  display: none;
+}
+
+/* ══════════════════════════════════════════
+   PANELS
+══════════════════════════════════════════ */
+.panel { display: none; padding: 16px; }
+.panel.active { display: block; animation: fadeUp .2s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ══════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════ */
+.card {
+  background: var(--surf);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.card-title i { font-size: 15px; }
+
+/* ══════════════════════════════════════════
+   DASHBOARD KPIs
+══════════════════════════════════════════ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.kpi-wide { grid-column: span 2; }
+.kpi-card {
+  background: var(--surf);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi-card.rec::before { background: var(--g2); }
+.kpi-card.des::before { background: var(--r1); }
+.kpi-card.sal::before { background: var(--gold); }
+.kpi-card.cnt::before { background: var(--br2); }
+.kpi-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 6px;
+}
+.kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--mono);
+  line-height: 1;
+}
+.kpi-card.rec .kpi-val { color: var(--g1); }
+.kpi-card.des .kpi-val { color: var(--r1); }
+.kpi-card.sal .kpi-val { color: var(--bl); }
+.kpi-card.cnt .kpi-val { color: var(--br2); }
+.kpi-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* ══════════════════════════════════════════
+   FORMULÁRIO
+══════════════════════════════════════════ */
+.tipo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tipo-btn {
+  padding: 14px 10px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border2);
+  background: var(--surf);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: var(--text2);
+  transition: all .15s;
+}
+.tipo-btn i { font-size: 20px; }
+.tipo-btn.rec.active {
+  background: var(--g6);
+  border-color: var(--g2);
+  color: var(--g1);
+}
+.tipo-btn.des.active {
+  background: var(--r2);
+  border-color: var(--r1);
+  color: var(--r1);
+}
+
+.field { margin-bottom: 12px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.req { color: var(--r1); margin-left: 2px; }
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text1);
+  background: var(--surf);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border .15s, box-shadow .15s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--g2);
+  box-shadow: 0 0 0 3px rgba(46,125,50,.12);
+}
+.field textarea { resize: vertical; min-height: 70px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.valor-wrap { position: relative; }
+.valor-prefix {
+  position: absolute;
+  left: 13px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text3);
+  pointer-events: none;
+  font-family: var(--mono);
+}
+.valor-wrap input { padding-left: 38px; font-family: var(--mono); font-size: 16px; }
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--g1);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .15s, transform .1s;
+  margin-top: 4px;
+}
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:hover { background: var(--g2); }
+.btn-primary i { font-size: 20px; }
+.btn-primary.gold { background: var(--gold); color: #5a3e00; }
+.btn-primary.gold:hover { background: #e6971e; }
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--g0);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  z-index: 999;
+  white-space: nowrap;
+  max-width: 90vw;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { background: var(--r1); }
+#toast i { font-size: 16px; }
+
+/* ══════════════════════════════════════════
+   LISTA DE LANÇAMENTOS
+══════════════════════════════════════════ */
+.filter-row {
+  display: flex; gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border2);
+  background: var(--surf);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.filter-chip.active { background: var(--g1); border-color: var(--g1); color: #fff; }
+
+.lanc-item {
+  background: var(--surf);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  animation: fadeUp .15s ease;
+}
+.lanc-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.lanc-icon.rec { background: var(--g6); color: var(--g1); }
+.lanc-icon.des { background: var(--r2); color: var(--r1); }
+.lanc-body { flex: 1; min-width: 0; }
+.lanc-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lanc-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.lanc-right { text-align: right; flex-shrink: 0; }
+.lanc-valor {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+.lanc-valor.rec { color: var(--g1); }
+.lanc-valor.des { color: var(--r1); }
+.lanc-date { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.lanc-del {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.lanc-del:hover { background: var(--r2); border-color: var(--r1); color: var(--r1); }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 600;
+}
+.pill.rec { background: var(--g6); color: var(--g1); }
+.pill.des { background: var(--r2); color: var(--r1); }
+.pill.pago { background: var(--blf); color: var(--bl); }
+.pill.pend { background: var(--goldf); color: #7a5000; }
+.pill.canc { background: var(--surf3); color: var(--text2); }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+}
+.empty-state i { font-size: 48px; margin-bottom: 12px; display: block; opacity: .4; }
+.empty-state p { font-size: 14px; }
+
+/* ══════════════════════════════════════════
+   CHARTS
+══════════════════════════════════════════ */
+.chart-wrap { position: relative; }
+canvas { max-width: 100%; }
+
+/* ══════════════════════════════════════════
+   CONFIGURAÇÕES / SOBRE
+══════════════════════════════════════════ */
+.settings-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--g6);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--g1); font-size: 18px;
+}
+.settings-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--text1); }
+.settings-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.settings-action {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border2);
+  background: none;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.settings-action:hover { background: var(--g6); border-color: var(--g2); color: var(--g1); }
+.settings-action.danger:hover { background: var(--r2); border-color: var(--r1); color: var(--r1); }
+
+.install-banner {
+  background: linear-gradient(135deg, var(--g1), var(--g2));
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+  color: #fff;
+  display: none;
+}
+.install-banner h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.install-banner p { font-size: 12px; opacity: .85; margin-bottom: 14px; line-height: 1.5; }
+.install-banner button {
+  background: rgba(255,255,255,.95);
+  color: var(--g1);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════
+   SPLASH / LOADING
+══════════════════════════════════════════ */
+#splash {
+  position: fixed; inset: 0;
+  background: var(--g0);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  transition: opacity .4s;
+}
+#splash.hide { opacity: 0; pointer-events: none; }
+.splash-icon { font-size: 64px; margin-bottom: 16px; animation: bounce .8s ease infinite alternate; }
+.splash-name { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.splash-sub { font-size: 13px; color: var(--g5); }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-icon">🌿</div>
+  <div class="splash-name">Bem Ti Vi</div>
+  <div class="splash-sub">Controle Financeiro</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP NAV -->
+  <nav id="topnav">
+    <div class="nav-logo">🌿</div>
+    <div class="nav-title">
+      <h1>Fazenda Bem Ti Vi</h1>
+      <p id="nav-sub">Controle Financeiro</p>
+    </div>
+    <button class="nav-sync" onclick="exportXLS()" title="Exportar Excel">
+      <i class="ti ti-table-export"></i>
+    </button>
+  </nav>
+
+  <!-- SCROLL AREA -->
+  <div id="scroll-area">
+
+    <!-- ── PAINEL: INÍCIO / DASHBOARD ── -->
+    <div id="panel-dash" class="panel active">
+
+      <div id="install-banner" class="install-banner">
+        <h3>📲 Instalar como App</h3>
+        <p>Adicione à tela inicial para acesso rápido, mesmo sem internet.</p>
+        <button onclick="doInstall()">Instalar agora</button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card rec">
+          <div class="kpi-lbl">Receitas</div>
+          <div class="kpi-val" id="kpi-rec">R$ 0</div>
+          <div class="kpi-sub" id="kpi-rec-n">0 entradas</div>
+        </div>
+        <div class="kpi-card des">
+          <div class="kpi-lbl">Despesas</div>
+          <div class="kpi-val" id="kpi-des">R$ 0</div>
+          <div class="kpi-sub" id="kpi-des-n">0 saídas</div>
+        </div>
+        <div class="kpi-card sal kpi-wide">
+          <div class="kpi-lbl">Saldo líquido</div>
+          <div class="kpi-val" id="kpi-sal">R$ 0</div>
+          <div class="kpi-sub" id="kpi-sal-sub">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-chart-bar"></i>Receitas × Despesas por mês</div>
+        <div class="chart-wrap"><canvas id="chart-mensal" height="180"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-chart-donut"></i>Despesas por categoria</div>
+        <div class="chart-wrap"><canvas id="chart-cat" height="200"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-clock"></i>Últimos lançamentos</div>
+        <div id="recentes-list"></div>
+      </div>
+    </div>
+
+    <!-- ── PAINEL: NOVO LANÇAMENTO ── -->
+    <div id="panel-form" class="panel">
+      <div class="tipo-row">
+        <button class="tipo-btn rec active" id="btn-rec" onclick="setTipo('Receita')">
+          <i class="ti ti-arrow-up-circle"></i> Receita
+        </button>
+        <button class="tipo-btn des" id="btn-des" onclick="setTipo('Despesa')">
+          <i class="ti ti-arrow-down-circle"></i> Despesa
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-calendar"></i>Data e valor</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Data <span class="req">*</span></label>
+            <input type="date" id="f-data">
+          </div>
+          <div class="field">
+            <label>Valor <span class="req">*</span></label>
+            <div class="valor-wrap">
+              <span class="valor-prefix">R$</span>
+              <input type="number" id="f-valor" placeholder="0,00" min="0.01" step="0.01" inputmode="decimal">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-tag"></i>Classificação</div>
+        <div class="field">
+          <label>Categoria <span class="req">*</span></label>
+          <select id="f-cat" onchange="updateSubcat()">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Subcategoria</label>
+          <select id="f-subcat"><option value="">Selecione...</option></select>
+        </div>
+        <div class="field">
+          <label>Centro de custo</label>
+          <select id="f-centro">
+            <option value="">Selecione...</option>
+            <option>Pecuária</option><option>Agricultura</option>
+            <option>Maquinário</option><option>Administrativo</option>
+            <option>Imóvel</option><option>RH</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-description"></i>Detalhes</div>
+        <div class="field">
+          <label>Descrição <span class="req">*</span></label>
+          <input type="text" id="f-desc" placeholder="Ex: Venda de 10 bois">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Forma de pagamento</label>
+            <select id="f-forma">
+              <option value="">Selecione...</option>
+              <option>PIX</option><option>Transferência</option><option>Boleto</option>
+              <option>Dinheiro</option><option>Cartão</option><option>Débito Auto</option><option>Cheque</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="f-status">
+              <option>Recebido</option><option>Pago</option>
+              <option>Pendente</option><option>Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Nº Documento / NF</label>
+          <input type="text" id="f-nf" placeholder="Ex: NF 1001">
+        </div>
+        <div class="field">
+          <label>Observações</label>
+          <textarea id="f-obs" placeholder="Informações adicionais..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="salvar()">
+        <i class="ti ti-device-floppy"></i> Salvar lançamento
+      </button>
+    </div>
+
+    <!-- ── PAINEL: LISTA ── -->
+    <div id="panel-lista" class="panel">
+      <div class="filter-row" id="filter-row">
+        <button class="filter-chip active" onclick="setFiltro('')" data-f="">Todos</button>
+        <button class="filter-chip" onclick="setFiltro('Receita')" data-f="Receita">Receitas</button>
+        <button class="filter-chip" onclick="setFiltro('Despesa')" data-f="Despesa">Despesas</button>
+        <button class="filter-chip" onclick="setFiltro('Pendente')" data-f="Pendente">Pendentes</button>
+      </div>
+      <div id="lista-content"></div>
+    </div>
+
+    <!-- ── PAINEL: MAIS ── -->
+    <div id="panel-mais" class="panel">
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-export"></i>Exportar dados</div>
+        <div class="settings-row">
+          <div class="settings-icon"><i class="ti ti-table"></i></div>
+          <div class="flex-1">
+            <div class="settings-label">Planilha Excel (.xlsx)</div>
+            <div class="settings-sub">Lançamentos, resumo mensal e categorias</div>
+          </div>
+          <button class="settings-action" onclick="exportXLS()">Baixar</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon"><i class="ti ti-file-type-csv"></i></div>
+          <div class="flex-1">
+            <div class="settings-label">Exportar CSV</div>
+            <div class="settings-sub">Formato compatível com qualquer sistema</div>
+          </div>
+          <button class="settings-action" onclick="exportCSV()">Baixar</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon"><i class="ti ti-database-import"></i></div>
+          <div class="flex-1">
+            <div class="settings-label">Importar JSON</div>
+            <div class="settings-sub">Restaurar backup anterior</div>
+          </div>
+          <button class="settings-action" onclick="importJSON()">Importar</button>
+        </div>
+        <div class="settings-row" style="border:none">
+          <div class="settings-icon"><i class="ti ti-database-export"></i></div>
+          <div class="flex-1">
+            <div class="settings-label">Backup JSON</div>
+            <div class="settings-sub">Salvar cópia de segurança</div>
+          </div>
+          <button class="settings-action" onclick="exportJSON()">Backup</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-settings"></i>Sistema</div>
+        <div class="settings-row">
+          <div class="settings-icon"><i class="ti ti-info-circle"></i></div>
+          <div>
+            <div class="settings-label">Versão</div>
+            <div class="settings-sub">Fazenda Bem Ti Vi v1.0 — PWA</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon" style="background:var(--r2);color:var(--r1)"><i class="ti ti-trash"></i></div>
+          <div class="flex-1">
+            <div class="settings-label">Limpar todos os dados</div>
+            <div class="settings-sub">Remove todos os lançamentos</div>
+          </div>
+          <button class="settings-action danger" onclick="confirmarLimpar()">Limpar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-help"></i>Como instalar</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.8">
+          <p style="margin-bottom:10px"><strong>📱 Android (Chrome):</strong><br>
+          Menu ⋮ → "Adicionar à tela inicial" → Instalar</p>
+          <p style="margin-bottom:10px"><strong>🍎 iPhone/iPad (Safari):</strong><br>
+          Botão de compartilhar → "Adicionar à tela de início"</p>
+          <p><strong>💻 Desktop (Chrome/Edge):</strong><br>
+          Ícone de instalação na barra de endereço → Instalar</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM TABS -->
+  <nav id="bottomtabs">
+    <button class="btab active" onclick="goTab('dash')">
+      <i class="ti ti-chart-pie"></i>
+      <span>Início</span>
+    </button>
+    <button class="btab" onclick="goTab('form')">
+      <i class="ti ti-plus"></i>
+      <span>Lançar</span>
+    </button>
+    <button class="btab" onclick="goTab('lista')">
+      <i class="ti ti-list"></i>
+      <span>Histórico</span>
+      <span class="badge" id="badge-lista"></span>
+    </button>
+    <button class="btab" onclick="goTab('mais')">
+      <i class="ti ti-dots"></i>
+      <span>Mais</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"><i class="ti ti-check" id="toast-icon"></i><span id="toast-msg"></span></div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="file-input" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+/* ══════════════════════════════════════════
+   DATA
+══════════════════════════════════════════ */
+const CATS = {
+  Receita: {
+    "Venda Gado":      ["Boi Gordo","Vaca Leiteira","Bezerros","Outros"],
+    "Venda Agrícola":  ["Milho","Soja","Feijão","Algodão","Sorgo","Outros"],
+    "Arrendamento":    ["Pastagem","Lavoura"],
+    "Subsídio":        ["Pronaf","PAA","Proagro","Outros"],
+    "Outras Receitas": ["Diversas"]
+  },
+  Despesa: {
+    "Insumos":         ["Ração","Fertilizante","Sementes","Defensivos","Calcário","Outros"],
+    "Mão de Obra":     ["Salários","Diaristas","Encargos","Terceiros"],
+    "Manutenção":      ["Equipamentos","Cercas","Benfeitorias","Veículos","Irrigação"],
+    "Combustível":     ["Diesel","Gasolina","Etanol"],
+    "Veterinário":     ["Vacinas","Medicamentos","Consultas","Exames"],
+    "Energia":         ["Elétrica","Solar","Gerador"],
+    "Administrativo":  ["Contador","Taxas","Seguros","Licenças","Outros"],
+    "Outros":          ["Diversas"]
+  }
+};
+
+const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+let db = [];
+let tipo = "Receita";
+let filtro = "";
+let chartMensal = null, chartCat = null;
+let deferredPrompt = null;
+let activeTab = "dash";
+
+/* ── Persistence ── */
+function persist() {
+  try { localStorage.setItem("btv_v1", JSON.stringify(db)); } catch(e) {}
+}
+function load() {
+  try { const d = localStorage.getItem("btv_v1"); if(d) db = JSON.parse(d); } catch(e) {}
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, ok=true) {
+  const el = document.getElementById("toast");
+  const ic = document.getElementById("toast-icon");
+  document.getElementById("toast-msg").textContent = msg;
+  ic.className = ok ? "ti ti-check" : "ti ti-alert-circle";
+  el.className = ok ? "show" : "show err";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = "", 2800);
+}
+
+/* ── Tab navigation ── */
+function goTab(t) {
+  activeTab = t;
+  document.querySelectorAll(".btab").forEach((b,i) => {
+    b.classList.toggle("active", ["dash","form","lista","mais"][i] === t);
+  });
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-"+t).classList.add("active");
+  document.getElementById("scroll-area").scrollTop = 0;
+
+  if(t === "dash") updateDash();
+  if(t === "lista") renderLista();
+  updateNavSub();
+}
+
+function updateNavSub() {
+  const subs = {dash:"Dashboard", form:"Novo Lançamento", lista:"Histórico", mais:"Configurações"};
+  document.getElementById("nav-sub").textContent = subs[activeTab]||"";
+}
+
+/* ── Tipo ── */
+function setTipo(t) {
+  tipo = t;
+  document.getElementById("btn-rec").className = "tipo-btn rec" + (t==="Receita"?" active":"");
+  document.getElementById("btn-des").className = "tipo-btn des" + (t==="Despesa"?" active":"");
+  const catSel = document.getElementById("f-cat");
+  catSel.innerHTML = '<option value="">Selecione...</option>';
+  Object.keys(CATS[t]).forEach(c => {
+    const o = document.createElement("option"); o.value = c; o.textContent = c; catSel.appendChild(o);
+  });
+  document.getElementById("f-subcat").innerHTML = '<option value="">Selecione...</option>';
+  document.getElementById("f-status").value = t === "Receita" ? "Recebido" : "Pago";
+}
+
+function updateSubcat() {
+  const cat = document.getElementById("f-cat").value;
+  const sel = document.getElementById("f-subcat");
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  if(cat && CATS[tipo][cat]) {
+    CATS[tipo][cat].forEach(s => {
+      const o = document.createElement("option"); o.value = s; o.textContent = s; sel.appendChild(o);
+    });
+  }
+}
+
+/* ── Salvar ── */
+function salvar() {
+  const data   = document.getElementById("f-data").value;
+  const cat    = document.getElementById("f-cat").value;
+  const desc   = document.getElementById("f-desc").value.trim();
+  const valor  = parseFloat(document.getElementById("f-valor").value);
+
+  if(!data || !cat || !desc || isNaN(valor) || valor <= 0) {
+    showToast("Preencha Data, Categoria, Descrição e Valor.", false);
+    return;
+  }
+
+  const lan = {
+    id: Date.now(),
+    data,
+    tipo,
+    categoria: cat,
+    subcategoria: document.getElementById("f-subcat").value,
+    descricao: desc,
+    centro: document.getElementById("f-centro").value,
+    valor: parseFloat(valor.toFixed(2)),
+    forma: document.getElementById("f-forma").value,
+    status: document.getElementById("f-status").value,
+    nf: document.getElementById("f-nf").value.trim(),
+    obs: document.getElementById("f-obs").value.trim()
+  };
+
+  db.unshift(lan);
+  persist();
+  updateBadge();
+  showToast("Lançamento salvo com sucesso!");
+  resetForm();
+  goTab("dash");
+}
+
+function resetForm() {
+  ["f-data","f-desc","f-valor","f-nf","f-obs"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("f-cat").value = "";
+  document.getElementById("f-subcat").innerHTML = '<option value="">Selecione...</option>';
+  document.getElementById("f-forma").value = "";
+  document.getElementById("f-data").valueAsDate = new Date();
+}
+
+/* ── Deletar ── */
+function deletar(id) {
+  if(!confirm("Excluir este lançamento?")) return;
+  db = db.filter(l => l.id !== id);
+  persist(); updateBadge(); renderLista(); updateDash();
+  showToast("Lançamento excluído.");
+}
+
+/* ── Formatação ── */
+function fmtBRL(v) {
+  return "R$ " + Math.abs(v).toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(d) {
+  if(!d) return "";
+  const p = d.split("-"); return p[2]+"/"+p[1]+"/"+p[0];
+}
+
+/* ── Badge ── */
+function updateBadge() {
+  const b = document.getElementById("badge-lista");
+  if(db.length) { b.style.display = "flex"; b.textContent = db.length > 99 ? "99+" : db.length; }
+  else b.style.display = "none";
+}
+
+/* ── Filtro lista ── */
+function setFiltro(f) {
+  filtro = f;
+  document.querySelectorAll(".filter-chip").forEach(c => {
+    c.classList.toggle("active", c.dataset.f === f);
+  });
+  renderLista();
+}
+
+/* ── Render lista ── */
+function renderLista() {
+  const container = document.getElementById("lista-content");
+  let lista = filtro === "Pendente"
+    ? db.filter(l => l.status === "Pendente")
+    : filtro ? db.filter(l => l.tipo === filtro) : db;
+
+  if(!lista.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-inbox"></i><p>Nenhum lançamento${filtro ? " nesta categoria" : ""}.<br>Use a aba Lançar para adicionar.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = lista.map(l => {
+    const stClass = l.status === "Pendente" ? "pend" : l.status === "Cancelado" ? "canc" : l.tipo === "Receita" ? "rec" : "pago";
+    return `<div class="lanc-item">
+      <div class="lanc-icon ${l.tipo==="Receita"?"rec":"des"}">
+        <i class="ti ${l.tipo==="Receita"?"ti-arrow-up":"ti-arrow-down"}"></i>
+      </div>
+      <div class="lanc-body">
+        <div class="lanc-desc">${l.descricao}</div>
+        <div class="lanc-meta">${l.categoria}${l.subcategoria?" · "+l.subcategoria:""} &nbsp;<span class="pill ${stClass}">${l.status}</span></div>
+      </div>
+      <div class="lanc-right">
+        <div class="lanc-valor ${l.tipo==="Receita"?"rec":"des"}">${fmtBRL(l.valor)}</div>
+        <div class="lanc-date">${fmtDate(l.data)}</div>
+      </div>
+      <button class="lanc-del" onclick="deletar(${l.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join("");
+}
+
+/* ── Dashboard ── */
+function totals() {
+  let rec=0, des=0, nRec=0, nDes=0;
+  db.forEach(l => {
+    if(l.tipo==="Receita") { rec += l.valor; nRec++; }
+    else { des += l.valor; nDes++; }
+  });
+  return { rec, des, sal: rec-des, nRec, nDes };
+}
+
+function updateDash() {
+  const { rec, des, sal, nRec, nDes } = totals();
+
+  document.getElementById("kpi-rec").textContent = fmtBRL(rec);
+  document.getElementById("kpi-des").textContent = fmtBRL(des);
+  document.getElementById("kpi-rec-n").textContent = nRec + " entrada" + (nRec!==1?"s":"");
+  document.getElementById("kpi-des-n").textContent = nDes + " saída" + (nDes!==1?"s":"");
+
+  const salEl = document.getElementById("kpi-sal");
+  salEl.textContent = (sal < 0 ? "- " : "") + fmtBRL(sal);
+  salEl.style.color = sal >= 0 ? "#1565C0" : "#C62828";
+  document.getElementById("kpi-sal-sub").textContent =
+    sal >= 0 ? "Resultado positivo" : "Resultado negativo";
+
+  // Monthly chart
+  const recM = new Array(12).fill(0), desM = new Array(12).fill(0);
+  db.forEach(l => {
+    const m = new Date(l.data+"T00:00:00").getMonth();
+    if(l.tipo==="Receita") recM[m] += l.valor; else desM[m] += l.valor;
+  });
+
+  if(chartMensal) chartMensal.destroy();
+  chartMensal = new Chart(document.getElementById("chart-mensal"), {
+    type: "bar",
+    data: {
+      labels: MONTHS,
+      datasets: [
+        { label: "Receitas", data: recM, backgroundColor: "rgba(46,125,50,.8)", borderRadius: 5, borderSkipped: false },
+        { label: "Despesas", data: desM, backgroundColor: "rgba(198,40,40,.65)", borderRadius: 5, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { font: { size: 11, family: "'Sora',sans-serif" }, color: "#4a5c46" } } },
+      scales: {
+        x: { grid: { color: "rgba(0,0,0,.05)" }, ticks: { color: "#7a9174", font: { size: 10 } } },
+        y: { grid: { color: "rgba(0,0,0,.05)" }, ticks: { color: "#7a9174", font: { size: 10 }, callback: v => "R$"+v.toLocaleString("pt-BR") } }
+      }
+    }
+  });
+
+  // Category pie
+  const catMap = {};
+  db.filter(l => l.tipo==="Despesa").forEach(l => {
+    catMap[l.categoria] = (catMap[l.categoria]||0) + l.valor;
+  });
+  const cats = Object.keys(catMap), vals = cats.map(c => catMap[c]);
+  const palette = ["#1B5E20","#2E7D32","#388E3C","#43A047","#66BB6A","#81C784","#A5D6A7","#C8E6C9"];
+
+  if(chartCat) chartCat.destroy();
+  if(cats.length) {
+    chartCat = new Chart(document.getElementById("chart-cat"), {
+      type: "doughnut",
+      data: {
+        labels: cats,
+        datasets: [{ data: vals, backgroundColor: palette.slice(0,cats.length), borderWidth: 2, borderColor: "#f4f6f3" }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom", labels: { font: { size: 11, family: "'Sora',sans-serif" }, color: "#4a5c46", padding: 12 } }
+        },
+        cutout: "60%"
+      }
+    });
+  }
+
+  // Recentes
+  const rec5 = db.slice(0,5);
+  const rl = document.getElementById("recentes-list");
+  if(!rec5.length) {
+    rl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Nenhum lançamento ainda.</div>';
+    return;
+  }
+  rl.innerHTML = rec5.map(l => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div class="lanc-icon ${l.tipo==="Receita"?"rec":"des"}" style="width:32px;height:32px;font-size:14px;flex-shrink:0">
+        <i class="ti ${l.tipo==="Receita"?"ti-arrow-up":"ti-arrow-down"}"></i>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.descricao}</div>
+        <div style="font-size:10px;color:var(--text3)">${fmtDate(l.data)} · ${l.categoria}</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;font-family:var(--mono);color:${l.tipo==="Receita"?"#1B5E20":"#C62828"}">${fmtBRL(l.valor)}</div>
+    </div>
+  `).join("");
+}
+
+/* ── Export Excel ── */
+function exportXLS() {
+  if(!db.length) { showToast("Nenhum lançamento para exportar.", false); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Lançamentos
+  const hdrs = ["ID","Data","Tipo","Categoria","Subcategoria","Descrição","Centro","Valor (R$)","Forma","Status","NF/Doc","Obs"];
+  const rows = db.map(l => [l.id, l.data, l.tipo, l.categoria, l.subcategoria||"", l.descricao,
+    l.centro||"", l.valor, l.forma||"", l.status, l.nf||"", l.obs||""]);
+  const wsL = XLSX.utils.aoa_to_sheet([hdrs, ...rows]);
+  wsL["!cols"] = [6,12,10,18,16,30,14,12,13,12,10,25].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, wsL, "Lançamentos");
+
+  // Sheet 2: Resumo Mensal
+  const recM = new Array(12).fill(0), desM = new Array(12).fill(0);
+  db.forEach(l => {
+    const m = new Date(l.data+"T00:00:00").getMonth();
+    if(l.tipo==="Receita") recM[m]+=l.valor; else desM[m]+=l.valor;
+  });
+  const salM = recM.map((r,i) => r-desM[i]);
+  const resumo = [
+    ["Mês","Receitas (R$)","Despesas (R$)","Saldo (R$)"],
+    ...MONTHS.map((m,i) => [m, recM[i], desM[i], salM[i]]),
+    ["TOTAL", recM.reduce((a,b)=>a+b,0), desM.reduce((a,b)=>a+b,0), salM.reduce((a,b)=>a+b,0)]
+  ];
+  const wsR = XLSX.utils.aoa_to_sheet(resumo);
+  wsR["!cols"] = [{wch:8},{wch:16},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsR, "Resumo Mensal");
+
+  // Sheet 3: Categorias
+  const catDesp={}, catRec={};
+  db.forEach(l => {
+    if(l.tipo==="Despesa") catDesp[l.categoria]=(catDesp[l.categoria]||0)+l.valor;
+    else catRec[l.categoria]=(catRec[l.categoria]||0)+l.valor;
+  });
+  const tdTotal = Object.values(catDesp).reduce((a,b)=>a+b,0)||1;
+  const trTotal = Object.values(catRec).reduce((a,b)=>a+b,0)||1;
+  const catRows = [
+    ["DESPESAS POR CATEGORIA","",""],["Categoria","Total (R$)","% do Total"],
+    ...Object.entries(catDesp).map(([k,v])=>[k,v,(v/tdTotal*100).toFixed(1)+"%"]),
+    ["","",""],
+    ["RECEITAS POR CATEGORIA","",""],["Categoria","Total (R$)","% do Total"],
+    ...Object.entries(catRec).map(([k,v])=>[k,v,(v/trTotal*100).toFixed(1)+"%"])
+  ];
+  const wsC = XLSX.utils.aoa_to_sheet(catRows);
+  wsC["!cols"] = [{wch:22},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, wsC, "Categorias");
+
+  // Sheet 4: KPIs
+  const {rec,des,sal,nRec,nDes} = totals();
+  const kpiRows = [
+    ["Indicador","Valor"],
+    ["Total Receitas", rec],["Total Despesas", des],["Saldo Líquido", sal],
+    ["Nº Lançamentos", db.length],["Nº Receitas", nRec],["Nº Despesas", nDes],
+    ["Pendentes", db.filter(l=>l.status==="Pendente").length]
+  ];
+  const wsK = XLSX.utils.aoa_to_sheet(kpiRows);
+  wsK["!cols"] = [{wch:20},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsK, "KPIs");
+
+  const dt = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `FazendaBemTiVi_${dt}.xlsx`);
+  showToast("Planilha exportada com sucesso!");
+}
+
+/* ── Export CSV ── */
+function exportCSV() {
+  if(!db.length) { showToast("Nenhum dado para exportar.", false); return; }
+  const hdrs = ["ID","Data","Tipo","Categoria","Subcategoria","Descricao","Centro","Valor","Forma","Status","NF","Obs"];
+  const rows = db.map(l => [l.id,l.data,l.tipo,l.categoria,l.subcategoria||"",`"${l.descricao}"`,l.centro||"",l.valor,l.forma||"",l.status,l.nf||"",`"${l.obs||""}"`].join(","));
+  const csv = [hdrs.join(","), ...rows].join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `FazendaBemTiVi_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast("CSV exportado!");
+}
+
+/* ── Export / Import JSON ── */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({version:1, exportDate:new Date().toISOString(), lancamentos:db}, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `BemTiVi_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast("Backup salvo!");
+}
+function importJSON() { document.getElementById("file-input").click(); }
+function handleImport(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const items = data.lancamentos || data;
+      if(!Array.isArray(items)) throw new Error("Formato inválido");
+      if(!confirm(`Importar ${items.length} lançamentos? Os dados atuais serão mantidos.`)) return;
+      db = [...items, ...db];
+      persist(); updateBadge(); updateDash();
+      showToast(`${items.length} lançamentos importados!`);
+    } catch(err) { showToast("Arquivo inválido.", false); }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
+/* ── Limpar dados ── */
+function confirmarLimpar() {
+  if(confirm("Tem certeza? Todos os lançamentos serão removidos permanentemente.")) {
+    db = []; persist(); updateBadge(); updateDash(); renderLista();
+    showToast("Dados removidos.");
+  }
+}
+
+/* ── PWA Install ── */
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("install-banner").style.display = "block";
+});
+function doInstall() {
+  if(deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById("install-banner").style.display = "none";
+    });
+  }
+}
+window.addEventListener("appinstalled", () => {
+  document.getElementById("install-banner").style.display = "none";
+  showToast("App instalado com sucesso!");
+});
+
+/* ── Service Worker ── */
+if("serviceWorker" in navigator) {
+  const swCode = `
+    const CACHE = 'btv-v1';
+    const ASSETS = ['/'];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => new Response('Offline'))));
+    });
+  `;
+  const swBlob = new Blob([swCode], {type:"application/javascript"});
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(()=>{});
+}
+
+/* ── INIT ── */
+load();
+setTipo("Receita");
+document.getElementById("f-data").valueAsDate = new Date();
+updateBadge();
+updateDash();
+setTimeout(() => {
+  const splash = document.getElementById("splash");
+  splash.classList.add("hide");
+  setTimeout(() => splash.remove(), 400);
+}, 900);
+</script>
+</body>
+</html>
